@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradeX | Modern Trading Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js"></script>
+    <style>
+        .watchlist-item:hover { background-color: #f8fafc; border-left: 4px solid #3b82f6; }
+        .price-up { color: #22c55e; }
+        .price-down { color: #ef4444; }
+        .btn-buy { background-color: #3b82f6; }
+        .btn-sell { background-color: #f97316; }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-900">
+
+    <nav class="bg-white border-b border-gray-200 px-6 py-3 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-8">
+            <h1 class="text-2xl font-bold text-blue-600 tracking-tight">TradeX</h1>
+            <div class="hidden md:flex gap-6 text-sm font-medium text-gray-600">
+                <a href="http://127.0.0.1:5000/dashboard" class="hover:text-blue-600">Dashboard</a>
+                <a href="http://127.0.0.1:5000/profile" class="hover:text-blue-600">Profile</a>
+                <a href="http://127.0.0.1:5000/logout" class="hover:text-blue-600">Logout</a>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <span class="text-sm font-semibold text-gray-500">NIFTY 50 <span class="text-green-500">22,040.20</span></span>
+            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center border">
+                <i class="fa-solid fa-user"></i>
+            </div>
+        </div>
+    </nav>
+
+    <div id="login-section" class="flex items-center justify-center min-h-[calc(100vh-64px)] bg-gray-50">
+        <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+            <h2 class="text-2xl font-bold text-center mb-6">Login to TradeX</h2>
+            <form id="login-form">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700">Username</label>
+                    <input type="text" name="username" class="w-full border rounded p-2 mt-1 focus:ring-2 focus:ring-blue-400 outline-none" required>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" name="password" class="w-full border rounded p-2 mt-1 focus:ring-2 focus:ring-blue-400 outline-none" required>
+                </div>
+                <button type="submit" class="w-full py-3 rounded-lg text-white font-bold btn-buy shadow-lg">Login</button>
+            </form>
+            <p class="text-center mt-4 text-sm text-gray-600">Don't have an account? <a href="http://127.0.0.1:5000/register" class="text-blue-600">Register</a></p>
+        </div>
+    </div>
+
+    <div id="register-section" class="flex items-center justify-center min-h-[calc(100vh-64px)] bg-gray-50 hidden">
+        <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+            <h2 class="text-2xl font-bold text-center mb-6">Register for TradeX</h2>
+            <form id="register-form">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700">Username</label>
+                    <input type="text" name="username" class="w-full border rounded p-2 mt-1 focus:ring-2 focus:ring-blue-400 outline-none" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" name="email" class="w-full border rounded p-2 mt-1 focus:ring-2 focus:ring-blue-400 outline-none" required>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" name="password" class="w-full border rounded p-2 mt-1 focus:ring-2 focus:ring-blue-400 outline-none" required>
+                </div>
+                <button type="submit" class="w-full py-3 rounded-lg text-white font-bold btn-buy shadow-lg">Register</button>
+            </form>
+            <p class="text-center mt-4 text-sm text-gray-600">Already have an account? <a href="http://127.0.0.1:5000/login" class="text-blue-600">Login</a></p>
+        </div>
+    </div>
+
+    <div id="trading-section" class="flex h-[calc(100vh-64px)] hidden">
+        <aside class="w-80 bg-white border-r border-gray-200 overflow-y-auto hidden lg:block">
+            <div class="p-4 border-b">
+                <input type="text" placeholder="Search eg: INFOSYS, NIFTY..." class="w-full bg-gray-100 border-none rounded-md py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div id="watchlist">
+                </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <div class="bg-white p-6 border-b flex justify-between items-center">
+                <div>
+                    <h2 id="active-symbol" class="text-2xl font-bold">RELIANCE</h2>
+                    <p class="text-sm text-gray-500">NSE | Equity</p>
+                </div>
+                <div class="text-right">
+                    <p id="active-price" class="text-2xl font-mono font-bold text-green-600">₹2,945.50</p>
+                    <p class="text-sm text-green-500">+12.40 (0.42%)</p>
+                </div>
+            </div>
+
+            <div class="flex-1 p-6 overflow-y-auto">
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                    <div class="xl:col-span-2 bg-white rounded-xl shadow-sm border p-4 h-[400px] flex items-center justify-center text-gray-400">
+                        <div class="text-center">
+                            <i class="fa-solid fa-chart-line text-5xl mb-4"></i>
+                            <p>Real-time TradingView Chart Container</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-lg border p-6">
+                        <div class="flex gap-4 mb-6">
+                            <button onclick="setOrderType('BUY')" id="buy-toggle" class="flex-1 py-2 rounded font-bold text-white btn-buy">BUY</button>
+                            <button onclick="setOrderType('SELL')" id="sell-toggle" class="flex-1 py-2 rounded font-bold text-gray-600 bg-gray-100">SELL</button>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-xs font-bold text-gray-500">QUANTITY</label>
+                                <input id="order-qty" type="number" value="1" class="w-full border rounded p-2 mt-1 focus:ring-2 focus:ring-blue-400 outline-none">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-gray-500">PRICE (Market)</label>
+                                <input id="order-price" type="text" disabled value="2945.50" class="w-full border bg-gray-50 rounded p-2 mt-1">
+                            </div>
+                            <div class="pt-4 border-t">
+                                <div class="flex justify-between text-sm mb-2">
+                                    <span>Margin Required</span>
+                                    <span id="margin-total" class="font-bold">₹2,945.50</span>
+                                </div>
+                                <button onclick="executeTrade()" id="exec-btn" class="w-full py-3 rounded-lg text-white font-bold btn-buy shadow-lg transition-transform active:scale-95">
+                                    PLACE BUY ORDER
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let currentAction = 'BUY';
+        const stocks = [
+            { name: 'RELIANCE', price: 2945.50, change: '+0.42%' },
+            { name: 'TCS', price: 3910.15, change: '-1.20%' },
+            { name: 'HDFC BANK', price: 1420.00, change: '+0.15%' },
+            { name: 'INFY', price: 1605.40, change: '-0.85%' },
+            { name: 'ZOMATO', price: 185.20, change: '+3.40%' }
+        ];
+
+        // Initialize Watchlist
+        const watchlistEl = document.getElementById('watchlist');
+        stocks.forEach(stock => {
+            const div = document.createElement('div');
+            div.className = 'watchlist-item p-4 border-b flex justify-between cursor-pointer transition-all';
+            div.innerHTML = `
+                <div>
+                    <p class="font-bold text-sm">${stock.name}</p>
+                    <p class="text-xs text-gray-400">NSE</p>
+                </div>
+                <div class="text-right">
+                    <p class="font-mono text-sm ${stock.change.includes('+') ? 'text-green-500' : 'text-red-500'}">${stock.price.toFixed(2)}</p>
+                    <p class="text-xs text-gray-400">${stock.change}</p>
+                </div>
+            `;
+            div.onclick = () => selectStock(stock);
+            watchlistEl.appendChild(div);
+        });
+
+        function selectStock(stock) {
+            document.getElementById('active-symbol').innerText = stock.name;
+            document.getElementById('active-price').innerText = `₹${stock.price.toFixed(2)}`;
+            document.getElementById('order-price').value = stock.price.toFixed(2);
+            updateMargin();
+        }
+
+        function setOrderType(type) {
+            currentAction = type;
+            const btn = document.getElementById('exec-btn');
+            const buyTog = document.getElementById('buy-toggle');
+            const sellTog = document.getElementById('sell-toggle');
+
+            if(type === 'BUY') {
+                btn.className = "w-full py-3 rounded-lg text-white font-bold btn-buy shadow-lg";
+                btn.innerText = "PLACE BUY ORDER";
+                buyTog.className = "flex-1 py-2 rounded font-bold text-white btn-buy";
+                sellTog.className = "flex-1 py-2 rounded font-bold text-gray-600 bg-gray-100";
+            } else {
+                btn.className = "w-full py-3 rounded-lg text-white font-bold btn-sell shadow-lg";
+                btn.innerText = "PLACE SELL ORDER";
+                sellTog.className = "flex-1 py-2 rounded font-bold text-white btn-sell";
+                buyTog.className = "flex-1 py-2 rounded font-bold text-gray-600 bg-gray-100";
+            }
+        }
+
+        function updateMargin() {
+            const qty = document.getElementById('order-qty').value;
+            const price = document.getElementById('order-price').value;
+            document.getElementById('margin-total').innerText = `₹${(qty * price).toLocaleString()}`;
+        }
+
+        document.getElementById('order-qty').oninput = updateMargin;
+
+        async function executeTrade() {
+            const payload = {
+                symbol: document.getElementById('active-symbol').innerText,
+                quantity: document.getElementById('order-qty').value,
+                price: document.getElementById('order-price').value,
+                action: currentAction
+            };
+
+            try {
+                const response = await fetch('http://127.0.0.1:5000/trade', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                alert(`Order Status: ${data.status}\nMessage: ${data.message}`);
+            } catch (err) {
+                alert("Backend not connected. Check Python script.");
+            }
+        }
+    </script>
+
+    <div id="profile-section" class="flex items-center justify-center min-h-[calc(100vh-64px)] bg-gray-50 hidden">
+        <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+            <h2 class="text-2xl font-bold text-center mb-6">Profile</h2>
+            <div id="profile-info">
+                <p><strong>Username:</strong> <span id="profile-username"></span></p>
+                <p><strong>Email:</strong> <span id="profile-email"></span></p>
+                <p><strong>Balance:</strong> $<span id="profile-balance"></span></p>
+                <h3 class="mt-4">Portfolio</h3>
+                <ul id="profile-portfolio"></ul>
+            </div>
+            <button onclick="showTrading()" class="w-full py-3 rounded-lg text-white font-bold btn-buy shadow-lg mt-4">Back to Trading</button>
+        </div>
+    </div>
+
+</body>
+</html>
